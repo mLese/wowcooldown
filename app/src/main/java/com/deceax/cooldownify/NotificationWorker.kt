@@ -1,12 +1,13 @@
 package com.deceax.cooldownify
 
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 
-class NotificationWorker(context: Context, params: WorkerParameters): Worker(context, params) {
+class NotificationWorker(val context: Context, params: WorkerParameters): Worker(context, params) {
     val CHANNEL_ID = "cooldownify"
 
     override fun doWork(): Result {
@@ -21,7 +22,10 @@ class NotificationWorker(context: Context, params: WorkerParameters): Worker(con
                 .setSmallIcon(R.drawable.inv_fabric_spellfire)
                 .setContentTitle("Spellfire CD Ready")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            notify(1234, builder.build())
+            notify(System.currentTimeMillis().toInt(), builder.build())
+
+            val sharedPreferences = context.getSharedPreferences("cooldownify", MODE_PRIVATE)
+            sharedPreferences.edit().putLong("spellcloth", -1)
         }
     }
 }

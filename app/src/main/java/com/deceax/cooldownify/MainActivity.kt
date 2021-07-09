@@ -5,8 +5,9 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -26,15 +27,34 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
 
-        binding.spellclothIcon.setOnClickListener { spellclothClicked() }
+        val sharedPreferences = getSharedPreferences("cooldownify", MODE_PRIVATE)
+        val time = sharedPreferences.getLong("spellcloth", -1)
+
+        if (time != -1L) {
+            val timeSinceNotification = System.currentTimeMillis() - time
+            val totalLength = (92 * 60 * 60 * 1000).toLong()
+            val timeLeft = totalLength - timeSinceNotification
+            binding.cooldownTimer.text = DateUtils.formatElapsedTime(timeLeft / 1000)
+        } else {
+            binding.spellclothIcon.setOnClickListener { spellclothClicked() }
+        }
     }
 
     private fun spellclothClicked() {
-        // create a notification 4 days from now
-        val notificationWork: OneTimeWorkRequest = OneTimeWorkRequestBuilder<NotificationWorker>()
-            .setInitialDelay(92, TimeUnit.HOURS)
-            .build()
-        WorkManager.getInstance(this).enqueue(notificationWork);
+        val sharedPreferences = getSharedPreferences("cooldownify", MODE_PRIVATE)
+        val time = sharedPreferences.getLong("spellcloth", -1)
+
+        if (time == -1L) {
+            // create a notification 4 days from now
+            val notificationWork: OneTimeWorkRequest =
+                OneTimeWorkRequestBuilder<NotificationWorker>()
+                    .setInitialDelay(92, TimeUnit.HOURS)
+                    .build()
+            WorkManager.getInstance(this).enqueue(notificationWork);
+            Toast.makeText(this, "Notification Set", Toast.LENGTH_SHORT).show()
+
+            sharedPreferences.edit().putLong("spellcloth", System.currentTimeMillis()).apply()
+        }
     }
 
     private fun createNotificationChannel() {
